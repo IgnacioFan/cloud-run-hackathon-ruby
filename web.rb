@@ -26,5 +26,5 @@ def http_response
 end
 
 def my_url
-  @_my_url ||= http_response["links"]["self"]["href"]
+  @_my_url ||= http_response["_links"]["self"]["href"]
 end
