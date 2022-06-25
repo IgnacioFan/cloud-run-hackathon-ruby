@@ -12,8 +12,19 @@ get '/' do
 end
 
 post '/' do
-  puts JSON.parse(request.body.read)
+  current_status = http_response["arena"]["state"][my_url]
 
-  moves = ['F', 'T', 'L', 'R']
-  moves.sample
+  if current_status["wasHit"]
+    ["F", "L", "R"].sample
+  else
+    "T"
+  end
+end
+
+def http_response
+  @_http_response ||= JSON.parse(request.body.read)
+end
+
+def my_url
+  @_my_url ||= http_response["links"]["self"]["href"]
 end
