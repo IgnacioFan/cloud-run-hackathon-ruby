@@ -33,68 +33,35 @@ class ActionProcessor
     when "attack"
       if targets?
         "T"
-      elsif revenge?
-        "T"
+        # turn_left? ? "L" : "R"
       else
-        turn_left? ? "L" : "R"
+        ["L", "R", "F"].sample
       end
     when "flee"
       case @@attack_quota
       when 0
         @@attack_quota = 4
         @@acton = "attack"
-        "F"
+        targets? ? "T" : "F"
       when 1
         @@attack_quota = 0
-        turn_left? ? "L" : "R"
+        ["L", "R"].sample
       when 2
         @@attack_quota -= 1
-        "F"
+        targets? ? "T" : "F"
       when 3
         @@attack_quota -= 1
-        turn_left? ? "L" : "R"
+        ["L", "R"].sample
       end
     end
   end
 
   private
 
-  def revenge?
-    range = case OPPOSITE_DIRECTION[me["direction"]]
-    when "N"
-      north_range(me)
-    when "S"
-      south_range(me)
-    when "W"
-      west_range(me)
-    when "E"
-      east_range(me)
-    end
-    arena_state.any? do |_, target|
-      range.include?(target.slice("x", "y").values)
-    end
-  end
-
   def count_attacked_quota
     if me["wasHit"] && @@attack_quota == 4
       @@acton = "flee"
       @@attack_quota -= 1
-    end
-  end
-
-  def turn_left?
-    range = case TURN_LEFT_DIRECTION[me["direction"]]
-    when "N"
-      north_range(me)
-    when "S"
-      south_range(me)
-    when "W"
-      west_range(me)
-    when "E"
-      east_range(me)
-    end
-    arena_state.any? do |_, target|
-      !range.include?(target.slice("x", "y").values)
     end
   end
 
@@ -118,6 +85,38 @@ class ActionProcessor
 
   def targets?
     targets.any?
+  end
+
+  # def revenge?
+  #   range = case OPPOSITE_DIRECTION[me["direction"]]
+  #   when "N"
+  #     north_range(me)
+  #   when "S"
+  #     south_range(me)
+  #   when "W"
+  #     west_range(me)
+  #   when "E"
+  #     east_range(me)
+  #   end
+  #   arena_state.any? do |_, target|
+  #     range.include?(target.slice("x", "y").values)
+  #   end
+  # end
+
+  def turn_left?
+    range = case TURN_LEFT_DIRECTION[me["direction"]]
+    when "N"
+      north_range(me)
+    when "S"
+      south_range(me)
+    when "W"
+      west_range(me)
+    when "E"
+      east_range(me)
+    end
+    arena_state.any? do |_, target|
+      !range.include?(target.slice("x", "y").values)
+    end
   end
 
   def attackers
