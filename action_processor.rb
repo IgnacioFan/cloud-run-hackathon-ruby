@@ -1,6 +1,7 @@
 class ActionProcessor
   @@acton = "attack"
   @@attack_quota = 4
+  @@queue = []
 
   MY_URL = "https://cloud-run-hackathon-v2-bxlyqop23a-uc.a.run.app".freeze
 
@@ -24,12 +25,14 @@ class ActionProcessor
 
     case @@acton
     when "attack"
-      return "T" if targets?
-
-      if turn_left?
-        "L"
+      if targets?
+        watching_target
+        "T"
+      elsif targets.first == @@queue.first
+        "T"
       else
-        "R"
+        @@queue = []
+        turn_left? ? "L" : "R"
       end
     when "flee"
       case @@attack_quota
@@ -89,8 +92,13 @@ class ActionProcessor
       end
       arena_state.select do |_, target|
         range.include?(target.slice("x", "y").values)
+
       end
     end
+  end
+
+  def watching_target
+    @@queue << targets.first
   end
 
   def targets?
