@@ -1,6 +1,6 @@
 class ActionProcessor
   @@acton = "attack"
-  @@attack_quota = 3
+  @@attack_quota = 4
 
   MY_URL = "https://cloud-run-hackathon-v2-bxlyqop23a-uc.a.run.app".freeze
 
@@ -24,38 +24,36 @@ class ActionProcessor
 
     case @@acton
     when "attack"
-      if targets
-        "T"
+      return "T" if targets?
+
+      if turn_left?
+        "L"
       else
-        turn_left? ? "L" : "R"
+        "R"
       end
     when "flee"
       case @@attack_quota
       when 0
-        @@attack_quota = 3
+        @@attack_quota = 4
         @@acton = "attack"
-        puts @@attack_quota
-        "T"
+        "F"
       when 1
         @@attack_quota = 0
-        puts @@attack_quota
-        "F"
+        turn_left? ? "L" : "R"
       when 2
         @@attack_quota -= 1
+        "F"
+      when 3
+        @@attack_quota -= 1
         turn_left? ? "L" : "R"
-        puts @@attack_quota
       end
     end
-
-    # return flee if attackers? && me["wasHit"]
-    # return "T" if targets?
-    # ["F", "L", "R"].sample
   end
 
   private
 
   def count_attacked_quota
-    if me["wasHit"] && @@attack_quota == 3
+    if me["wasHit"] && @@attack_quota == 4
       @@acton = "flee"
       @@attack_quota -= 1
     end
@@ -73,7 +71,7 @@ class ActionProcessor
       east_range(me)
     end
     arena_state.any? do |_, target|
-      range.include?(target.slice("x", "y").values)
+      !range.include?(target.slice("x", "y").values)
     end
   end
 
