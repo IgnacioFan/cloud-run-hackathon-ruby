@@ -18,45 +18,35 @@ class ActionProcessor
     "E" => "W"
   }
 
-  attr_accessor :sub_queue, :arena_state, :me
+  attr_accessor :sub_queue, :arena_state, :me, :max_width, :max_height
 
   def initialize(request_params)
     @sub_queue = []
     @arena_state = request_params["arena"]["state"]
     @me = request_params["arena"]["state"][MY_URL]
+    @max_width = request_params["arena"]["dims"][0]
+    @max_height = request_params["arena"]["dims"][1]
   end
 
   def process
     count_attacked_quota
-
     case @@acton
-    when "attack"
-      if targets?
-        "T"
-        # turn_left? ? "L" : "R"
-      else
-        ["L", "R", "F"].sample
-      end
-    when "flee"
-      case @@attack_quota
-      when 0
-        @@attack_quota = 4
-        @@acton = "attack"
-        targets? ? "T" : "F"
-      when 1
-        @@attack_quota = 0
-        ["L", "R"].sample
-      when 2
-        @@attack_quota -= 1
-        targets? ? "T" : "F"
-      when 3
-        @@attack_quota -= 1
-        ["L", "R"].sample
-      end
+    when "attack" then attack!
+    when "flee" then flee!
     end
   end
 
   private
+
+  def attack!
+    if target?
+      "T"
+    elsif closing_border?
+      turn_left? ? "L" : "R"
+    else
+      ["L", "R", "F"].sample
+    end
+  end
 
   def count_attacked_quota
     if me["wasHit"] && @@attack_quota == 4
@@ -83,25 +73,22 @@ class ActionProcessor
     end
   end
 
-  def targets?
-    targets.any?
+  def target?
+    !targets.empty?
   end
 
-  # def revenge?
-  #   range = case OPPOSITE_DIRECTION[me["direction"]]
-  #   when "N"
-  #     north_range(me)
-  #   when "S"
-  #     south_range(me)
-  #   when "W"
-  #     west_range(me)
-  #   when "E"
-  #     east_range(me)
-  #   end
-  #   arena_state.any? do |_, target|
-  #     range.include?(target.slice("x", "y").values)
-  #   end
-  # end
+  def closing_border?
+    case me["direction"]
+    when "N"
+      [0, 1].include?(me["y"])
+    when "S"
+      [max_height, max_height - 1].include?(me["y"])
+    when "W"
+      [0, 1].include?(me["x"])
+    when "E"
+      [max_width, max_width - 1].include?(me["x"])
+    end
+  end
 
   def turn_left?
     range = case TURN_LEFT_DIRECTION[me["direction"]]
@@ -119,28 +106,22 @@ class ActionProcessor
     end
   end
 
-  def attackers
-    @_attackers ||= begin
-      location = me.slice("x", "y").values
-      arena_state.select do |_, attacker|
-        next if attacker == me
-        range = case attacker["direction"]
-        when "N"
-          north_range(attacker)
-        when "S"
-          south_range(attacker)
-        when "W"
-          west_range(attacker)
-        when "E"
-          east_range(attacker)
-        end
-        range.include?(location)
-      end
+  def flee!
+    case @@attack_quota
+    when 0
+      @@attack_quota = 4
+      @@acton = "attack"
+      "F"
+    when 1
+      @@attack_quota = 0
+      ["L", "R"].sample
+    when 2
+      @@attack_quota -= 1
+      "F"
+    when 3
+      @@attack_quota -= 1
+      ["L", "R"].sample
     end
-  end
-
-  def attackers?
-    attackers.any?
   end
 
   def north_range(role)
