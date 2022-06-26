@@ -12,7 +12,7 @@ class ActionProcessor
   def process
     return flee if attackers? && me["wasHit"]
     return "T" if targets?
-    ["F", "L", "R"].sample
+    # ["F", "L", "R"].sample
   end
 
   private
@@ -63,8 +63,44 @@ class ActionProcessor
     attackers.any?
   end
 
+  def attackers_against_me
+    @_attackers_against_me ||= attackers.select do |_, attacker|
+      attacker["direction"]
+      case attacker["direction"]
+      when "N"
+        me["direction"] == "S"
+      when "S"
+        me["direction"] == "N"
+      when "W"
+        me["direction"] == "E"
+      when "E"
+        me["direction"] == "W"
+      end
+    end
+  end
+
   def flee
-    ["F", "L", "R"].sample
+    if flee_forward?
+      "F"
+    else
+      ["R", "L"].sample
+    end
+  end
+
+  def flee_forward?
+    attackers_against_me.any? do |_, attacker|
+      count = case attacker["dimension"]
+      when "N"
+        attacker["y"] - me["y"]
+      when "S"
+        me["y"] - attacker["y"]
+      when "W"
+        attacker["x"] - me["x"]
+      when "E"
+        me["x"] - attacker["x"]
+      end
+      count > 0
+    end
   end
 
   def north_range(role)
