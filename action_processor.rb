@@ -1,6 +1,6 @@
 class ActionProcessor
   @@acton = "attack"
-  @@attack_quota = 4
+  @@attack_quota = 0
 
   MY_URL = "https://cloud-run-hackathon-v2-bxlyqop23a-uc.a.run.app".freeze
 
@@ -49,10 +49,8 @@ class ActionProcessor
   end
 
   def count_attacked_quota
-    if me["wasHit"] && @@attack_quota == 4
-      @@acton = "flee"
-      @@attack_quota -= 1
-    end
+    me["wasHit"] ? @@attack_quota -= 1 : @@attack_quota = 0
+    @@acton = "flee" if @@attack_quota >= 3
   end
 
   def targets
@@ -109,11 +107,12 @@ class ActionProcessor
   def flee!
     case @@attack_quota
     when 0
-      @@attack_quota = 4
+      @@attack_quota = 3
       @@acton = "attack"
       "F"
     when 1
       @@attack_quota = 0
+      @@acton = "attack"
       ["L", "R"].sample
     when 2
       @@attack_quota -= 1
