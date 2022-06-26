@@ -1,5 +1,15 @@
 class ActionProcessor
+  @@acton = "attack"
+  @@attack_quota = 3
+
   MY_URL = "https://cloud-run-hackathon-v2-bxlyqop23a-uc.a.run.app".freeze
+
+  TURN_LEFT_DIRECTION = {
+    "N" => "W",
+    "S" => "E",
+    "W" => "S",
+    "E" => "N"
+  }
 
   attr_accessor :sub_queue, :arena_state, :me
 
@@ -10,12 +20,62 @@ class ActionProcessor
   end
 
   def process
-    return flee if attackers? && me["wasHit"]
-    return "T" if targets?
+    count_attacked_quota
+
+    case @@acton
+    when "attack"
+      if targets
+        "T"
+      else
+        turn_left? ? "L" : "R"
+      end
+    when "flee"
+      case @@attack_quota
+      when 0
+        @@attack_quota = 3
+        @@acton = "attack"
+        puts @@attack_quota
+        "T"
+      when 1
+        @@attack_quota = 0
+        puts @@attack_quota
+        "F"
+      when 2
+        @@attack_quota -= 1
+        turn_left? ? "L" : "R"
+        puts @@attack_quota
+      end
+    end
+
+    # return flee if attackers? && me["wasHit"]
+    # return "T" if targets?
     # ["F", "L", "R"].sample
   end
 
   private
+
+  def count_attacked_quota
+    if me["wasHit"] && @@attack_quota == 3
+      @@acton = "flee"
+      @@attack_quota -= 1
+    end
+  end
+
+  def turn_left?
+    range = case TURN_LEFT_DIRECTION[me["direction"]]
+    when "N"
+      north_range(me)
+    when "S"
+      south_range(me)
+    when "W"
+      west_range(me)
+    when "E"
+      east_range(me)
+    end
+    arena_state.any? do |_, target|
+      range.include?(target.slice("x", "y").values)
+    end
+  end
 
   def targets
     @_targets ||= begin
@@ -63,45 +123,45 @@ class ActionProcessor
     attackers.any?
   end
 
-  def attackers_against_me
-    @_attackers_against_me ||= attackers.select do |_, attacker|
-      attacker["direction"]
-      case attacker["direction"]
-      when "N"
-        me["direction"] == "S"
-      when "S"
-        me["direction"] == "N"
-      when "W"
-        me["direction"] == "E"
-      when "E"
-        me["direction"] == "W"
-      end
-    end
-  end
+  # def attackers_against_me
+  #   @_attackers_against_me ||= attackers.select do |_, attacker|
+  #     attacker["direction"]
+  #     case attacker["direction"]
+  #     when "N"
+  #       me["direction"] == "S"
+  #     when "S"
+  #       me["direction"] == "N"
+  #     when "W"
+  #       me["direction"] == "E"
+  #     when "E"
+  #       me["direction"] == "W"
+  #     end
+  #   end
+  # end
 
-  def flee
-    if flee_forward?
-      "F"
-    else
-      ["R", "L"].sample
-    end
-  end
+  # def flee
+  #   if flee_forward?
+  #     "F"
+  #   else
+  #     ["R", "L"].sample
+  #   end
+  # end
 
-  def flee_forward?
-    attackers_against_me.any? do |_, attacker|
-      count = case attacker["dimension"]
-      when "N"
-        attacker["y"] - me["y"]
-      when "S"
-        me["y"] - attacker["y"]
-      when "W"
-        attacker["x"] - me["x"]
-      when "E"
-        me["x"] - attacker["x"]
-      end
-      count > 0
-    end
-  end
+  # def flee_forward?
+  #   attackers_against_me.any? do |_, attacker|
+  #     count = case attacker["dimension"]
+  #     when "N"
+  #       attacker["y"] - me["y"]
+  #     when "S"
+  #       me["y"] - attacker["y"]
+  #     when "W"
+  #       attacker["x"] - me["x"]
+  #     when "E"
+  #       me["x"] - attacker["x"]
+  #     end
+  #     count > 0
+  #   end
+  # end
 
   def north_range(role)
     [
