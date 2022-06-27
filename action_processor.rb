@@ -42,9 +42,9 @@ class ActionProcessor
     if target?
       "T"
     elsif closing_border?
-      turn_left? ? "L" : "R"
+      ["L", "R"].sample
     else
-      ["L", "R", "F"].sample
+      turn_left? ? "L" : "F"
     end
   end
 
@@ -53,54 +53,51 @@ class ActionProcessor
     @@acton = "flee" if @@attack_quota >= 3
   end
 
-  def targets
-    @_targets ||= begin
-      range = case me["direction"]
-      when "N"
-        north_range(me)
-      when "S"
-        south_range(me)
-      when "W"
-        west_range(me)
-      when "E"
-        east_range(me)
-      end
-      arena_state.select do |_, target|
-        range.include?(target.slice("x", "y").values)
-      end
-    end
-  end
-
   def target?
-    !targets.empty?
-  end
-
-  def closing_border?
-    case me["direction"]
-    when "N"
-      [0, 1].include?(me["y"])
-    when "S"
-      [max_height, max_height - 1].include?(me["y"])
-    when "W"
-      [0, 1].include?(me["x"])
-    when "E"
-      [max_width, max_width - 1].include?(me["x"])
+    arena_state.find do |_, target|
+      if ["N", "S"].include?(me["direction"])
+        me["x"] == target["x"] && axis_y(me["direction"]).include?(target["y"])
+      else
+        me["y"] == target["y"] && axis_x(me["direction"]).include?(target["x"])
+      end
     end
   end
 
   def turn_left?
-    range = case TURN_LEFT_DIRECTION[me["direction"]]
-    when "N"
-      north_range(me)
-    when "S"
-      south_range(me)
-    when "W"
-      west_range(me)
-    when "E"
-      east_range(me)
-    end
     arena_state.any? do |_, target|
-      !range.include?(target.slice("x", "y").values)
+      if ["N", "S"].include?(TURN_LEFT_DIRECTION[me["direction"]])
+        me["x"] == target["x"] && axis_y(TURN_LEFT_DIRECTION[me["direction"]]).include?(target["y"])
+      else
+        me["y"] == target["y"] && axis_x(TURN_LEFT_DIRECTION[me["direction"]]).include?(target["x"])
+      end
+    end
+  end
+
+  def axis_x
+    @_axis_x ||= if me["direction"] == "W"
+      [me["x"] - 1, me["x"] - 2, me["x"] - 3]
+    else
+      [me["x"] + 1, me["x"] + 2, me["x"] + 3]
+    end
+  end
+
+  def axis_y
+    @_axis_y ||= if me["direction"] == "N"
+      [me["y"] - 1, me["y"] - 2, me["y"] - 3]
+    else
+      [me["y"] + 1, me["y"] + 2, me["y"] + 3]
+    end
+  end
+
+  def closing_border?
+    if me["direction"] == "N"
+      [0, 1].include?(me["y"])
+    elsif me["direction"] == "S"
+      [max_height - 1, max_height].include?(me["y"])
+    elsif me["direction"] == "W"
+      [0, 1].include?(me["x"])
+    else
+      [max_width - 1, max_width].include?(me["x"])
     end
   end
 
@@ -109,49 +106,26 @@ class ActionProcessor
     when 0
       @@attack_quota = 3
       @@acton = "attack"
-      "F"
+      if target?
+        "T"
+      else
+        "F"
+      end
     when 1
       @@attack_quota = 0
       @@acton = "attack"
       ["L", "R"].sample
     when 2
       @@attack_quota -= 1
-      "F"
+      if target?
+        @@acton = "attack"
+        "T"
+      else
+        "F"
+      end
     when 3
       @@attack_quota -= 1
       ["L", "R"].sample
     end
-  end
-
-  def north_range(role)
-    [
-      [role["x"], role["y"] - 1],
-      [role["x"], role["y"] - 2],
-      [role["x"], role["y"] - 3]
-    ]
-  end
-
-  def south_range(role)
-    [
-      [role["x"], role["y"] + 1],
-      [role["x"], role["y"] + 2],
-      [role["x"], role["y"] + 3]
-    ]
-  end
-
-  def west_range(role)
-    [
-      [role["x"] - 1, role["y"]],
-      [role["x"] - 2, role["y"]],
-      [role["x"] - 3, role["y"]]
-    ]
-  end
-
-  def east_range(role)
-    [
-      [role["x"] + 1, role["y"]],
-      [role["x"] + 2, role["y"]],
-      [role["x"] + 3, role["y"]]
-    ]
   end
 end
