@@ -15,6 +15,7 @@ end
 $acton = "attack"
 $attack_count = 0
 $running_count = 0
+$queue = []
 
 post '/' do
   ActionProcessor.new(request_params).process

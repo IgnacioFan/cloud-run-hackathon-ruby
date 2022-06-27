@@ -26,18 +26,21 @@ class ActionProcessor
   end
 
   def process
-    count_attacked_quota
-    case $acton
-    when "attack" then attack!
-    when "running" then running!
+    if $queue.empty?
+      count_attacked_quota
+      case $acton
+      when "attack" then attack!
+      when "running" then running!
+      end
     end
+    $queue.pop
   end
 
   private
 
   def attack!
     if target?
-      "T"
+      $queue += Array.new(4) { |x| "T" }
     elsif closing_border?
       ["L", "R"].sample
     else
