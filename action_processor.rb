@@ -1,7 +1,4 @@
 class ActionProcessor
-  @@acton = "attack"
-  @@attack_quota = 0
-
   MY_URL = "https://cloud-run-hackathon-v2-bxlyqop23a-uc.a.run.app".freeze
 
   TURN_LEFT_DIRECTION = {
@@ -30,9 +27,9 @@ class ActionProcessor
 
   def process
     count_attacked_quota
-    case @@acton
+    case $acton
     when "attack" then attack!
-    when "flee" then flee!
+    when "running" then running!
     end
   end
 
@@ -44,13 +41,13 @@ class ActionProcessor
     elsif closing_border?
       ["L", "R"].sample
     else
-      turn_left? ? "L" : "F"
+      ["L", "R", "F"].sample
     end
   end
 
   def count_attacked_quota
-    me["wasHit"] ? @@attack_quota -= 1 : @@attack_quota = 0
-    @@acton = "flee" if @@attack_quota >= 3
+    me["wasHit"] ? $attack_count += 1 : $attack_count = 0
+    $acton = "running" if $attack_count >= 3
   end
 
   def target?
@@ -59,16 +56,6 @@ class ActionProcessor
         me["x"] == target["x"] && axis_y(me["direction"]).include?(target["y"])
       else
         me["y"] == target["y"] && axis_x(me["direction"]).include?(target["x"])
-      end
-    end
-  end
-
-  def turn_left?
-    arena_state.any? do |_, target|
-      if ["N", "S"].include?(TURN_LEFT_DIRECTION[me["direction"]])
-        me["x"] == target["x"] && axis_y(TURN_LEFT_DIRECTION[me["direction"]]).include?(target["y"])
-      else
-        me["y"] == target["y"] && axis_x(TURN_LEFT_DIRECTION[me["direction"]]).include?(target["x"])
       end
     end
   end
@@ -101,30 +88,20 @@ class ActionProcessor
     end
   end
 
-  def flee!
-    case @@attack_quota
+  def running!
+    case $running_count
     when 0
-      @@attack_quota = 3
-      @@acton = "attack"
-      if target?
-        "T"
-      else
-        "F"
-      end
+      $running_count = 3
+      "F"
     when 1
-      @@attack_quota = 0
-      @@acton = "attack"
+      $running_count = 0
+      $acton = "attack"
       ["L", "R"].sample
     when 2
-      @@attack_quota -= 1
-      if target?
-        @@acton = "attack"
-        "T"
-      else
-        "F"
-      end
+      $running_count -= 1
+      "F"
     when 3
-      @@attack_quota -= 1
+      $running_count -= 1
       ["L", "R"].sample
     end
   end

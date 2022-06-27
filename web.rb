@@ -12,6 +12,10 @@ get '/' do
   'Let the battle begin!'
 end
 
+$acton = "attack"
+$attack_count = 0
+$running_count = 0
+
 post '/' do
   ActionProcessor.new(request_params).process
 rescue => e
